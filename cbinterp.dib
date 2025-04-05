@@ -1,0 +1,157 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"name":"csharp","languageName":"csharp"},{"name":"fsharp","languageName":"F#","aliases":["f#","fs"]},{"name":"html","languageName":"HTML"},{"name":"http","languageName":"HTTP"},{"name":"javascript","languageName":"JavaScript","aliases":["js"]},{"name":"mermaid","languageName":"Mermaid"},{"name":"pwsh","languageName":"PowerShell","aliases":["powershell"]},{"name":"value"}]}}
+
+#!csharp
+
+#r "c:\Repos\R2QLNet\R2QLNet\bin\Debug\net9.0\QLNet.dll"
+#r "c:\Repos\R2QLNet\R2QLNet\bin\Debug\net9.0\R2QLNet.dll"
+#r "nuget: Plotly.NET.Interactive"
+#r "nuget: Plotly.NET.CSharp"
+#r "nuget: MoreLinq"
+
+#!csharp
+
+using R2QLNet;
+using QLNet;
+using Plotly.NET.CSharp;
+using MoreLinq;
+using QDate = QLNet.Date;
+System.Diagnostics.Process.GetCurrentProcess().Id
+
+#!csharp
+
+Plotly.NET.GenericChart LineChartCurve(YieldTermStructure curve)
+{
+    var dates = Enumerable.Range(0, int.MaxValue).Select(n => curve.referenceDate() + n).TakeWhile(d => d < curve.maxDate());
+    var fwds = dates.Select(d => curve.forwardRate(d, d + 1, curve.dayCounter(), Compounding.Simple));
+
+    return Chart.Line<DateTime, double, string>(
+        x: dates.Select(d => d.ToDateTime()),
+        y: fwds.Select(fwd => fwd.rate())
+    );
+}
+
+YieldTermStructure MakeSofr(string interp)
+{
+    return YieldCurves.MakeSofr(
+        interp,
+        QDate.Today, 4.3 * 0.01,
+        new (QDate d, double v)[] {
+            (new QDate(7, Month.May, 2025), 4.285 * 0.01),
+            (new QDate(18, Month.June, 2025), 4.159 * 0.01),
+            (new QDate(30, Month.July, 2025), 4.075 * 0.01)
+        },
+        new QDate(7, Month.Sep, 2025),
+        new (Month, int, double)[] {
+            (Month.Jun, 2025, 95.9),
+            (Month.Sep, 2025, 96.1),
+            (Month.Dec, 2025, 96.0),
+        }
+    );
+}
+
+#!csharp
+
+LineChartCurve(MakeSofr("ConstForward"))
+
+#!csharp
+
+List<(double, double)> meetings = [
+    (0.0, 5.0),
+    (12.0, 4.5),
+    (30.0, 4.2),
+    (40.0, 4.0),
+    (50.0, 4.0)];
+
+List<(double, double)> swaps = [
+    (50.0, 4.0),
+    (360, 3.7),
+    (720, 3.5),
+    (1000, 3.8)
+    ];
+
+List<double> xS = meetings.Select(v => v.Item1).Concat(swaps.Select(v => v.Item1)).ToList();
+List<double> yS = meetings.Select(v => v.Item2).Concat(swaps.Select(v => v.Item2)).ToList();
+var cbInterp = new CBInterpolation(xS, xS.Count, yS, meetings.Count, Behavior.SplitRanges, CubicInterpolation.DerivativeApprox.Spline, 
+    false, CubicInterpolation.BoundaryCondition.FirstDerivative, 0.0, CubicInterpolation.BoundaryCondition.FirstDerivative, 0.0
+    );
+
+#!csharp
+
+var xs = Enumerable.Range(0,1000).ToList();
+var ys = (from x in xs select cbInterp.value(x)).ToList();
+
+var overall = Chart.Line<int, double, string>(
+    x: xs,
+    y: ys
+);
+
+xs = Enumerable.Range(40,50).ToList();
+ys = (from x in xs select cbInterp.value(x)).ToList();
+var boundary = Chart.Line<int, double, string>(
+    x: xs,
+    y: ys
+);
+
+
+Chart.SingleStack([overall, boundary])
+
+#!csharp
+
+var nyb = new UnitedStates(UnitedStates.Market.GovernmentBond);
+var today = nyb.adjust(QDate.Today);
+var sofr = new Sofr();
+
+SimpleQuote sofrFixingQuote = new SimpleQuote(4.30 * 0.01);
+Handle<Quote> sofrFixingQuoteHandle = new Handle<Quote>(sofrFixingQuote);
+OISRateHelper fixing = new OISRateHelper(0, new Period(10, TimeUnit.Days), sofrFixingQuoteHandle, sofr);
+
+List<DatedOISRateHelper> meetingSwaps = new (QDate d, double v)[] {
+        (new QDate(3, Month.May, 2025), 4.25),
+        (new QDate(20, Month.June, 2025), 4.12),
+        (new QDate(1, Month.Aug, 2025), 4.0),
+    }.Pairwise((m1, m2) => {
+        SimpleQuote quote = new SimpleQuote(m1.v * 0.01);
+        Handle<Quote> handle = new Handle<Quote>(sofrFixingQuote);
+        return new DatedOISRateHelper(m1.d, m2.d, handle, sofr);
+    }).ToList();
+
+List<FuturesRateHelper> futures = new (string code, double v)[] {
+        ("Z5", 96.0),
+        ("H6", 95.7),
+        ("M6", 95.5),
+    }.Select(f => {
+        SimpleQuote quote = new SimpleQuote(f.v);
+        Handle<Quote> handle = new Handle<Quote>(sofrFixingQuote);
+        var startDate = IMM.date(f.code);
+        return new FuturesRateHelper(handle, startDate, sofr);
+    }).ToList();
+
+List<OISRateHelper> oisRateHelpers = new (Period p, double v)[] {
+        (new Period(2, TimeUnit.Years), 4.1 * 0.01),
+        (new Period(3, TimeUnit.Years), 4.0 * 0.01),
+    }.Select(s => {
+        var quote = new SimpleQuote(s.v);
+        var handle = new Handle<Quote>(sofrFixingQuote);
+        return new OISRateHelper(2, s.p, handle, sofr);
+    }).ToList();
+
+var sofrTS =
+    new PiecewiseYieldCurve<Discount, LogLinear>(today,
+            meetingSwaps.AsEnumerable<RateHelper>().Prepend(fixing).ToList(),
+            new Actual360());
+var dates = Enumerable.Range(0, 120).Select(n => sofrTS.referenceDate() + n);
+var fwds = dates.Select(d => sofrTS.forwardRate(d, d + 1, sofrTS.dayCounter(), Compounding.Simple));
+
+#!csharp
+
+var overall = Chart.Line<DateTime, double, string>(
+    x: dates.Select(d => d.ToDateTime()),
+    y: fwds.Select(fwd => fwd.rate())
+);
+overall
+
+#!csharp
+
+sofrTS.referenceDate()
