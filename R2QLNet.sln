@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R2QLNet", "R2QLNet\R2QLNet.csproj", "{9E634687-201B-404E-A5EA-BBC3DC92EB12}"
+	ProjectSection(ProjectDependencies) = postProject
+		{30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED} = {30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QLNet", "..\QLNet\src\QLNet\QLNet.csproj", "{30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +20,15 @@ Global
 		{9E634687-201B-404E-A5EA-BBC3DC92EB12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E634687-201B-404E-A5EA-BBC3DC92EB12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E634687-201B-404E-A5EA-BBC3DC92EB12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30B4B18C-E5B8-751F-6D5E-E6A2A8B241ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5369B981-1391-4993-8D36-556B8B721B6C}
 	EndGlobalSection
 EndGlobal

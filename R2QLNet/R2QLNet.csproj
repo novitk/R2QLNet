@@ -10,4 +10,8 @@
     <PackageReference Include="morelinq" Version="4.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\QLNet\src\QLNet\QLNet.csproj" />
+  </ItemGroup>
+
 </Project>
