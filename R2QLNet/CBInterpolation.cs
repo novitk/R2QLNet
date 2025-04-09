@@ -14,8 +14,8 @@ public class CBInterpolation: Interpolation
         CubicInterpolation.BoundaryCondition rightC,
         double rightConditionValue)
     {
-        impl_ = new MixedInterpolationImpl<ForwardFlat, Cubic>(xBegin, xEnd, yBegin, yN, behavior,
-                                                          new ForwardFlat(),
+        impl_ = new MixedInterpolationImpl<BackwardFlat, Cubic>(xBegin, xEnd, yBegin, yN, behavior,
+                                                          new BackwardFlat(),
                                                           new Cubic(da, monotonic, leftC, leftConditionValue, rightC, rightConditionValue));
         impl_.update();
     }
@@ -38,7 +38,7 @@ public class CBInterpFactory : IInterpolationFactory
 
     public Interpolation interpolate(List<double> xBegin, int size, List<double> yBegin)
     {
-        return new CBInterpolation(xBegin, size, yBegin, meetingCount_,
+        return new CBInterpolation(xBegin, size, yBegin, meetingCount_ + 1,
             Behavior.SplitRanges, CubicInterpolation.DerivativeApprox.Spline,
             false, CubicInterpolation.BoundaryCondition.FirstDerivative, 0.0, CubicInterpolation.BoundaryCondition.FirstDerivative, 0.0);
     }
